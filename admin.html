@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educator Dashboard - Science with Sheshadi</title>
+
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;800&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/styles.css">
+
+    <script>
+        if (sessionStorage.getItem('admin_authenticated') !== 'true') {
+            window.location.href = 'admin_login.html';
+        }
+
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        cinzel: ['Cinzel', 'serif'],
+                        rajdhani: ['Rajdhani', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="antialiased text-slate-100 min-h-screen flex flex-col justify-between">
+
+    <!-- Header Navigation -->
+    <header class="bg-slate-900/90 border-b border-slate-700 sticky top-0 z-50 backdrop-blur-md no-print">
+        <div class="max-w-7xl mx-auto px-4 flex justify-between items-center h-20">
+            <div class="flex items-center space-x-3">
+                <img src="assets/images/logo.png" alt="Science with Sheshadi Logo" class="h-12 w-12 object-contain rounded-xl border border-amber-500/30 p-1 bg-slate-950">
+                <div>
+                    <h1 class="text-xl font-bold font-cinzel text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-400 to-amber-500">
+                        SCIENCE <span class="text-xs font-serif text-amber-300 italic">with</span> SHESHADI
+                    </h1>
+                    <p class="text-xs text-amber-400 font-rajdhani tracking-widest uppercase">12-Month Master Educator Portal (Jan - Dec)</p>
+                </div>
+            </div>
+
+            <!-- Action Controls -->
+            <div class="flex items-center space-x-3">
+                <button id="syncSheetsBtn" class="bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/40 px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    <span class="hidden sm:inline">Sync Google Sheet</span>
+                </button>
+
+                <label class="bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-3.5 py-2 rounded-xl text-xs font-semibold cursor-pointer flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span class="hidden sm:inline">Upload Excel (.xlsx)</span>
+                    <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden">
+                </label>
+
+                <button id="logoutBtn" class="bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 px-3.5 py-2 rounded-xl text-xs font-bold flex items-center space-x-2 transition">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    <span>Logout</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow w-full space-y-8">
+
+        <!-- Top Teacher Banner -->
+        <section class="glass-panel p-6 sm:p-8 relative overflow-hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                <div class="flex items-center space-x-5 md:col-span-2">
+                    <img src="assets/images/teacher.png" alt="Mrs. Sheshadi Sathsarani" class="w-24 h-28 object-cover rounded-2xl border-2 border-amber-500/50 shadow-xl">
+                    <div class="space-y-1">
+                        <span class="px-3 py-1 bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-bold rounded-full uppercase tracking-wider">
+                            Administrator & Head Educator
+                        </span>
+                        <h2 class="text-2xl sm:text-3xl font-bold font-cinzel text-slate-100">Mrs. Sheshadi Sathsarani</h2>
+                        <p class="text-xs text-slate-300">
+                            Class Management Dashboard: Manage 12-month student progress tables (Jan - Dec), print unique QR passes, and sync academic evaluations.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/80 border border-slate-700 p-4 rounded-xl space-y-2 no-print">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase text-slate-400">Class QR Generator</span>
+                        <button id="printQrCardsBtn" class="text-xs bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-lg font-bold">
+                            <i class="fa-solid fa-qrcode mr-1"></i> Print All QR Passes
+                        </button>
+                    </div>
+                    <p class="text-xs text-slate-300">
+                        Print physical QR Code passes for students. Each QR Code links exclusively to that student's 12-month private results page.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Search & Student Tabs Navigation -->
+        <section class="space-y-4">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
+                <div class="relative flex-grow max-w-md">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm"></i>
+                    <input type="text" id="adminSearchInput" placeholder="Search student name, ID or sheet tab..." class="w-full bg-slate-900 border border-slate-700 rounded-xl pl-11 pr-4 py-2.5 text-sm focus:outline-none focus:border-amber-400 text-slate-100">
+                </div>
+                <div class="text-xs text-slate-400 italic">
+                    Admin Master View: Access all student tabs and 12-month progress tables.
+                </div>
+            </div>
+
+            <!-- Student Tabs Container -->
+            <div class="border-b border-slate-700/80 overflow-x-auto no-print">
+                <div id="adminStudentTabsContainer" class="flex space-x-2 min-w-max pb-1">
+                    <!-- Tabs rendered by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Selected Student Profile View & QR Code Card -->
+        <section class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Student Details + Individual QR Code Card -->
+            <div class="lg:col-span-1 glass-panel p-6 space-y-6">
+                <div class="flex items-center space-x-4 pb-6 border-b border-slate-700">
+                    <img id="adminStAvatar" src="" alt="Student Avatar" class="w-20 h-20 rounded-2xl border-2 border-amber-400/50 bg-slate-900 p-1 shadow-md">
+                    <div>
+                        <h3 id="adminStName" class="text-2xl font-bold font-cinzel text-amber-300">Loading...</h3>
+                        <p class="text-xs font-mono text-cyan-400">ID: <span id="adminStId">...</span></p>
+                        <div class="mt-2 inline-block px-3 py-0.5 bg-slate-800 border border-slate-600 rounded-full text-xs text-slate-300 font-semibold">
+                            <i class="fa-solid fa-chalkboard-user mr-1 text-amber-400"></i><span id="adminStGrade">06 - Science</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code Box for Selected Student -->
+                <div class="bg-slate-900/90 border border-amber-500/40 p-5 rounded-2xl text-center space-y-3">
+                    <span class="text-xs font-bold uppercase text-amber-300 tracking-wider"><i class="fa-solid fa-qrcode mr-1"></i> Unique Student QR Pass</span>
+                    <div id="qrcodeBox" class="bg-white p-3 rounded-xl inline-block shadow-lg mx-auto"></div>
+                    <p id="qrUrlText" class="text-[11px] font-mono text-cyan-300 break-all px-2 py-1 bg-slate-950 rounded-lg">student.html?id=...</p>
+                    <a id="openStudentPageLink" href="#" target="_blank" class="inline-flex items-center text-xs text-amber-400 hover:underline space-x-1 pt-1">
+                        <span>Preview Private Student Link</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+                    </a>
+                </div>
+
+                <!-- Academic Stats -->
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center text-slate-300">
+                        <span class="text-slate-400">Annual Unit Test Average</span>
+                        <span id="adminStAvg" class="font-bold text-amber-300">0.0 / 100</span>
+                    </div>
+                    <div class="flex justify-between items-center text-slate-300">
+                        <span class="text-slate-400">Class Attendance</span>
+                        <span id="adminStAttendance" class="font-semibold text-emerald-400">95%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Month Selector, Weekly Progress Table & Charts -->
+            <div class="lg:col-span-2 space-y-8">
+                
+                <!-- Month Selector Bar (January - December) -->
+                <div class="glass-panel p-4 space-y-3 no-print">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase text-amber-400 tracking-wider"><i class="fa-solid fa-calendar-days mr-1"></i> Select Academic Month (Jan - Dec):</span>
+                        <span id="adminMonthLabel" class="text-xs font-bold text-cyan-300 uppercase">January</span>
+                    </div>
+                    <div id="adminMonthTabsContainer" class="flex flex-wrap gap-2 pt-1">
+                        <!-- 12 Month Buttons -->
+                    </div>
+                </div>
+
+                <!-- Weekly Progress Table -->
+                <div class="glass-panel p-6 space-y-4">
+                    <div class="flex items-center justify-between pb-2 border-b border-slate-700">
+                        <div>
+                            <h4 class="text-lg font-bold font-cinzel text-slate-100"><span id="adminTableMonthTitle">January</span> Weekly Progress Tracker</h4>
+                            <p class="text-xs text-slate-400">Guidebook completion, practical ratings & unit tests</p>
+                        </div>
+                        <span class="text-xs text-amber-400 font-mono"><i class="fa-solid fa-pen-to-square"></i> Admin Master View</span>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm text-slate-300">
+                            <thead class="bg-slate-900/90 text-slate-300 font-semibold uppercase text-xs border-b border-slate-700">
+                                <tr>
+                                    <th class="px-5 py-3">Week</th>
+                                    <th class="px-5 py-3">Guidebook 1</th>
+                                    <th class="px-5 py-3">Guidebook 2</th>
+                                    <th class="px-5 py-3">Past Paper</th>
+                                    <th class="px-5 py-3">Practical</th>
+                                    <th class="px-5 py-3">Unit Test</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminWeeklyTableBody" class="divide-y divide-slate-800">
+                                <!-- Dynamic Rows -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-panel p-5 space-y-3">
+                        <h5 class="text-sm font-bold text-slate-200 font-cinzel"><i class="fa-solid fa-chart-line text-cyan-400 mr-2"></i>12-Month Unit Test Trend (Jan - Dec)</h5>
+                        <div class="h-56 relative">
+                            <canvas id="adminAnnualTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="glass-panel p-5 space-y-3">
+                        <h5 class="text-sm font-bold text-slate-200 font-cinzel"><i class="fa-solid fa-chart-column text-amber-400 mr-2"></i>Term Assessment Marks</h5>
+                        <div class="h-56 relative">
+                            <canvas id="adminTermChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Printable QR Cards -->
+    <div id="printableQrCardsSection" class="hidden print:block p-8 bg-white text-black">
+        <h2 class="text-2xl font-bold font-cinzel text-center border-b pb-4 mb-6">Science with Sheshadi - Student QR Code Access Passes</h2>
+        <div id="qrCardsGrid" class="grid grid-cols-2 gap-6"></div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-slate-950 border-t border-slate-800 py-6 text-center text-xs text-slate-500 no-print">
+        <p>&copy; 2026 Science with Sheshadi. Admin Master Management Portal.</p>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="assets/js/sheet-sync.js"></script>
+    <script src="assets/js/excel-parser.js"></script>
+    <script>
+        const MONTHS = [
+            "January", "February", "March", "April", "May", "June", 
+            "July", "August", "September", "October", "November", "December"
+        ];
+
+        document.getElementById('logoutBtn').addEventListener('click', () => {
+            sessionStorage.removeItem('admin_authenticated');
+            window.location.href = 'admin_login.html';
+        });
+
+        let allStudents = [];
+        let curIndex = 0;
+        let selectedMonth = "January";
+        let annualChart = null;
+        let termChart = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const response = await fetch('assets/data/students.json');
+                allStudents = await response.json();
+                renderTabs();
+                selectAdminStudent(0);
+            } catch (err) {
+                console.error("Error loading students.json:", err);
+            }
+        });
+
+        function renderTabs(filtered = null) {
+            const container = document.getElementById('adminStudentTabsContainer');
+            container.innerHTML = '';
+            const list = filtered || allStudents;
+
+            list.forEach((st, idx) => {
+                const origIdx = allStudents.indexOf(st);
+                const btn = document.createElement('button');
+                btn.className = `student-tab-btn flex items-center space-x-2 px-5 py-3 text-sm font-semibold rounded-t-lg focus:outline-none ${origIdx === curIndex ? 'active text-amber-400' : 'text-slate-400'}`;
+                btn.innerHTML = `<i class="fa-solid fa-user-graduate text-xs"></i><span>${st.tab_name} (${st.student_info.name})</span>`;
+                btn.addEventListener('click', () => selectAdminStudent(origIdx));
+                container.appendChild(btn);
+            });
+        }
+
+        function renderMonthTabs() {
+            const container = document.getElementById('adminMonthTabsContainer');
+            container.innerHTML = '';
+
+            MONTHS.forEach(m => {
+                const btn = document.createElement('button');
+                btn.className = `px-3 py-1.5 text-xs font-bold rounded-lg border transition ${m === selectedMonth ? 'bg-amber-500 text-slate-950 border-amber-400' : 'bg-slate-900/80 text-slate-300 border-slate-700 hover:border-amber-400/50'}`;
+                btn.textContent = m.substring(0, 3).toUpperCase();
+                btn.title = m;
+                btn.addEventListener('click', () => selectAdminMonth(m));
+                container.appendChild(btn);
+            });
+        }
+
+        function selectAdminMonth(mName) {
+            selectedMonth = mName;
+            document.getElementById('adminMonthLabel').textContent = mName;
+            document.getElementById('adminTableMonthTitle').textContent = mName;
+            renderMonthTabs();
+
+            const st = allStudents[curIndex];
+            const tbody = document.getElementById('adminWeeklyTableBody');
+            tbody.innerHTML = '';
+
+            const mData = (st.monthly_progress && st.monthly_progress[mName]) ? st.monthly_progress[mName] : [
+                { week: "1 week", master_guide_1: "Incomplete", master_guide_2: "Incomplete", past_paper: "Incomplete", practical: "Good", unit_test: 50 },
+                { week: "2 week", master_guide_1: "Incomplete", master_guide_2: "Incomplete", past_paper: "Incomplete", practical: "Good", unit_test: 50 },
+                { week: "3 week", master_guide_1: "Incomplete", master_guide_2: "Incomplete", past_paper: "Incomplete", practical: "Good", unit_test: 50 },
+                { week: "4 week", master_guide_1: "Incomplete", master_guide_2: "Incomplete", past_paper: "Incomplete", practical: "Good", unit_test: 50 }
+            ];
+
+            const getBadgeClass = (val) => {
+                const s = String(val).toLowerCase();
+                if (s.includes('complete') || s.includes('good') || s.includes('excellent')) return 'badge-completed';
+                if (s.includes('incomplete') || s.includes('bad')) return 'badge-incomplete';
+                return 'badge-progress';
+            };
+
+            mData.forEach((row, idx) => {
+                const tr = document.createElement('tr');
+                tr.className = idx % 2 === 0 ? 'bg-slate-900/40' : 'bg-slate-800/20';
+                tr.innerHTML = `
+                    <td class="px-5 py-3 font-bold text-cyan-400">${row.week}</td>
+                    <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-semibold ${getBadgeClass(row.master_guide_1)}">${row.master_guide_1}</span></td>
+                    <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-semibold ${getBadgeClass(row.master_guide_2)}">${row.master_guide_2}</span></td>
+                    <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-semibold ${getBadgeClass(row.past_paper)}">${row.past_paper}</span></td>
+                    <td class="px-5 py-3"><span class="px-3 py-1 rounded-full text-xs font-semibold ${getBadgeClass(row.practical)}">${row.practical}</span></td>
+                    <td class="px-5 py-3 font-bold text-emerald-400">${row.unit_test} / 100</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function selectAdminStudent(idx) {
+            if (!allStudents[idx]) return;
+            curIndex = idx;
+            const st = allStudents[idx];
+
+            renderTabs();
+
+            document.getElementById('adminStName').textContent = st.student_info.name;
+            document.getElementById('adminStId').textContent = st.student_info.student_id;
+            document.getElementById('adminStGrade').textContent = st.student_info.grade_class;
+            document.getElementById('adminStAvatar').src = st.student_info.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${st.student_info.name}`;
+            document.getElementById('adminStAvg').textContent = st.summary.average_unit_test + ' / 100';
+            document.getElementById('adminStAttendance').textContent = st.summary.attendance || '95%';
+
+            // QR Code
+            const currentOrigin = window.location.origin + window.location.pathname.replace('admin.html', '');
+            const targetUrl = `${currentOrigin}student.html?id=${st.student_info.student_id}`;
+
+            document.getElementById('qrUrlText').textContent = `student.html?id=${st.student_info.student_id}`;
+            document.getElementById('openStudentPageLink').href = targetUrl;
+
+            const qrBox = document.getElementById('qrcodeBox');
+            qrBox.innerHTML = '';
+            new QRCode(qrBox, {
+                text: targetUrl,
+                width: 128,
+                height: 128,
+                colorDark: "#0f172a",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+
+            renderMonthTabs();
+            selectAdminMonth("January");
+            renderCharts(st);
+        }
+
+        function renderCharts(st) {
+            if (annualChart) annualChart.destroy();
+            if (termChart) termChart.destroy();
+
+            const monthlyAverages = MONTHS.map(m => {
+                const weeks = (st.monthly_progress && st.monthly_progress[m]) ? st.monthly_progress[m] : [];
+                if (weeks.length === 0) return 50;
+                const sum = weeks.reduce((a, b) => a + (typeof b.unit_test === 'number' ? b.unit_test : 0), 0);
+                return Math.round(sum / weeks.length);
+            });
+
+            annualChart = new Chart(document.getElementById('adminAnnualTrendChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: MONTHS.map(m => m.substring(0, 3)),
+                    datasets: [{
+                        label: 'Monthly Unit Test Average',
+                        data: monthlyAverages,
+                        borderColor: '#00d2ff',
+                        backgroundColor: 'rgba(0, 210, 255, 0.15)',
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.3,
+                        pointBackgroundColor: '#d4af37',
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' } },
+                        y: { min: 0, max: 100, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+
+            termChart = new Chart(document.getElementById('adminTermChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: st.assessments.map(a => a.term),
+                    datasets: [{
+                        label: 'Score',
+                        data: st.assessments.map(a => a.score),
+                        backgroundColor: ['rgba(79, 70, 229, 0.8)', 'rgba(14, 165, 233, 0.8)', 'rgba(212, 175, 55, 0.8)'],
+                        borderColor: ['#4f46e5', '#0ea5e9', '#d4af37'],
+                        borderWidth: 2,
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { ticks: { color: '#94a3b8' } },
+                        y: { min: 0, max: 100, ticks: { color: '#94a3b8' } }
+                    }
+                }
+            });
+        }
+
+        // Print All QR Cards
+        document.getElementById('printQrCardsBtn').addEventListener('click', () => {
+            const grid = document.getElementById('qrCardsGrid');
+            grid.innerHTML = '';
+            const currentOrigin = window.location.origin + window.location.pathname.replace('admin.html', '');
+
+            allStudents.forEach((st, idx) => {
+                const targetUrl = `${currentOrigin}student.html?id=${st.student_info.student_id}`;
+                const card = document.createElement('div');
+                card.className = "border-2 border-slate-800 p-4 rounded-2xl text-center space-y-2 bg-slate-50";
+                const qid = `qr-print-${idx}`;
+                card.innerHTML = `
+                    <h3 class="font-bold text-lg font-cinzel">${st.student_info.name}</h3>
+                    <p class="text-xs text-slate-600 font-mono">ID: ${st.student_info.student_id} | ${st.student_info.grade_class}</p>
+                    <div id="${qid}" class="p-2 bg-white rounded-xl inline-block border my-2"></div>
+                    <p class="text-[10px] text-slate-500 font-mono">Scan to view 12-month private results</p>
+                `;
+                grid.appendChild(card);
+
+                setTimeout(() => {
+                    new QRCode(document.getElementById(qid), {
+                        text: targetUrl,
+                        width: 100,
+                        height: 100
+                    });
+                }, 50);
+            });
+
+            setTimeout(() => {
+                window.print();
+            }, 300);
+        });
+
+        // Search Filter
+        document.getElementById('adminSearchInput').addEventListener('input', (e) => {
+            const q = e.target.value.toLowerCase().trim();
+            if (!q) {
+                renderTabs();
+                return;
+            }
+            const filtered = allStudents.filter(st => 
+                st.student_info.name.toLowerCase().includes(q) ||
+                st.student_info.student_id.toLowerCase().includes(q) ||
+                st.tab_name.toLowerCase().includes(q)
+            );
+            renderTabs(filtered);
+        });
+    </script>
+</body>
+</html>
